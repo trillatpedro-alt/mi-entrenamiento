@@ -70,7 +70,7 @@
   }
   @media (prefers-color-scheme: dark){ .card{box-shadow:none;} }
   .routine-card{display:flex;align-items:center;gap:10px;}
-  .routine-card .info{flex:1;min-width:0;}
+  .routine-card .info{flex:1;min-width:0;cursor:pointer;}
   .routine-card h3{margin:0 0 4px;font-size:16px;font-weight:700;}
   .routine-card .meta{color:var(--muted);font-size:12.5px;}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
@@ -468,7 +468,7 @@ function renderMuscleChips(routine){
 function renderRoutineCard(r){
   return '' +
   '<div class="card routine-card">' +
-    '<div class="info">' +
+    '<div class="info" data-action="preview-routine" data-routine="'+r.id+'">' +
       '<h3>'+r.name+'</h3>' +
       '<div class="meta">'+r.exercises.length+' ejercicios</div>' +
       '<div class="chips">'+renderMuscleChips(r)+'</div>' +
@@ -476,6 +476,22 @@ function renderRoutineCard(r){
     '<button class="icon-btn" data-action="edit-routine" data-routine="'+r.id+'">'+icon('edit')+'</button>' +
     '<button class="btn small" data-action="start-workout" data-routine="'+r.id+'">Iniciar</button>' +
   '</div>';
+}
+
+function renderRoutinePreview(routineId){
+  var r = state.routines.find(function(x){return x.id===routineId;});
+  if(!r) return '<div class="empty">Rutina no encontrada.</div>';
+  if(r.exercises.length===0) return '<div class="empty">Esta rutina no tiene ejercicios todavía.</div>' +
+    '<button class="btn secondary block" data-action="edit-routine" data-routine="'+r.id+'" style="margin-top:6px;">Agregar ejercicios</button>';
+  var cards = r.exercises.map(function(e, idx){
+    var entry = {
+      name:e.name, muscle:e.muscle, repRange:e.repRange, rir:e.rir,
+      note:e.note, noteLabel:e.noteLabel, plannedSets:e.sets,
+      sets: Array.from({length:e.sets}, function(){ return {weight:"",reps:"",rir:""}; })
+    };
+    return renderExerciseCard(entry, idx, null, true);
+  }).join("");
+  return cards + '<button class="btn block" data-action="start-workout" data-routine="'+r.id+'" style="margin-top:6px;">Iniciar entrenamiento</button>';
 }
 
 function renderHero(){
@@ -731,14 +747,19 @@ function headerFor(view){
   } else if(view==="editRoutine"){
     title = "Editar rutina";
     left = '<button class="icon-btn chevron" data-action="goto" data-view="home">‹</button>';
+  } else if(view==="routinePreview"){
+    var pr = state.routines.find(function(x){return x.id===state.previewRoutineId;});
+    title = pr ? pr.name : "Rutina";
+    left = '<button class="icon-btn chevron" data-action="goto" data-view="home">‹</button>';
+    right = '<button class="icon-btn" data-action="edit-routine" data-routine="'+state.previewRoutineId+'">'+icon('edit')+'</button>';
   } else if(view==="data"){ title="Datos"; }
   return '<header class="top">'+left+'<h1>'+title+'</h1>'+right+'</header>';
 }
 
 function bottomNavFor(view){
-  var active = (view==="home"||view==="editRoutine") ? "home" : (view==="history"||view==="sessionDetail"||view==="exerciseProgress") ? "history" : (view==="data") ? "data" : "";
+  var active = (view==="home"||view==="editRoutine"||view==="routinePreview") ? "home" : (view==="history"||view==="sessionDetail"||view==="exerciseProgress") ? "history" : (view==="data") ? "data" : "";
   function cls(v){ return v===active ? "active" : ""; }
-  if(view==="workout" || view==="sessionSummary") return "";
+  if(view==="workout" || view==="sessionSummary" || view==="routinePreview") return "";
   return '<nav class="bottom">' +
     '<button class="'+cls("home")+'" data-action="goto" data-view="home">'+icon('dumbbell')+'Rutinas</button>' +
     '<button class="'+cls("history")+'" data-action="goto" data-view="history">'+icon('history')+'Historial</button>' +
@@ -763,6 +784,7 @@ function render(){
       break;
     case "exerciseProgress": body = renderExerciseProgress(decodeURIComponent(state.progressExercise||"")); break;
     case "editRoutine": body = renderEditRoutine(state.editingRoutine); break;
+    case "routinePreview": body = renderRoutinePreview(state.previewRoutineId); break;
     case "data": body = renderData(); break;
     default: body = renderHome();
   }
@@ -838,6 +860,11 @@ app.addEventListener("click", function(e){
   if(action==="edit-routine"){
     state.editingRoutine = t.dataset.routine;
     state.view = "editRoutine";
+    render(); return;
+  }
+  if(action==="preview-routine"){
+    state.previewRoutineId = t.dataset.routine;
+    state.view = "routinePreview";
     render(); return;
   }
   if(action==="add-routine"){
