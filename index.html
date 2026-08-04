@@ -6,12 +6,12 @@
 <title>Mi Entrenamiento</title>
 <style>
   :root{
-    --bg:#f4f5f7; --card:#ffffff; --text:#1a1c20; --muted:#6b7280; --border:#e5e7eb;
-    --accent:#ff7a1a; --accent-dark:#e0650a; --green:#22b07d; --red:#e0567c;
-    --radius:14px;
+    --bg:#f6f6f4; --card:#ffffff; --text:#18191b; --muted:#6b6e74; --border:#e3e3e0;
+    --accent:#a8631f; --accent-dark:#824c17; --green:#1f7a5c; --red:#a6403c;
+    --radius:10px;
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#121316; --card:#1c1e22; --text:#f0f1f3; --muted:#9aa0a8; --border:#2c2f34; }
+    :root{ --bg:#111214; --card:#1a1b1e; --text:#f1f1ef; --muted:#9a9ca1; --border:#2b2c30; }
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -27,13 +27,15 @@
     padding:calc(14px + env(safe-area-inset-top)) 16px 10px;
     display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);
   }
-  header.top h1{font-size:19px;margin:0;flex:1;}
+  header.top h1{font-size:18px;margin:0;flex:1;font-weight:700;letter-spacing:-.01em;}
   .icon-btn{
-    background:none;border:none;color:var(--text);font-size:20px;padding:6px 8px;
-    border-radius:10px;cursor:pointer;line-height:1;
+    background:none;border:none;color:var(--text);padding:6px 8px;
+    border-radius:8px;cursor:pointer;line-height:1;display:inline-flex;align-items:center;
   }
   .icon-btn:active{background:var(--border);}
-  .timer{font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent);font-size:15px;}
+  .icon-btn svg{width:20px;height:20px;}
+  .chevron{font-size:22px;color:var(--text);}
+  .timer{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.02em;}
   main{padding:14px 16px 24px;}
   .card{
     background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
@@ -41,64 +43,67 @@
   }
   .routine-card{display:flex;align-items:center;gap:10px;}
   .routine-card .info{flex:1;min-width:0;}
-  .routine-card h3{margin:0 0 4px;font-size:16px;}
-  .routine-card .meta{color:var(--muted);font-size:13px;}
+  .routine-card h3{margin:0 0 4px;font-size:16px;font-weight:700;}
+  .routine-card .meta{color:var(--muted);font-size:12.5px;}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
   .chip{
-    font-size:11px;padding:3px 8px;border-radius:20px;color:#fff;font-weight:600;
-    white-space:nowrap;
+    font-size:10px;padding:3px 7px;border-radius:4px;color:#fff;font-weight:700;
+    white-space:nowrap;text-transform:uppercase;letter-spacing:.03em;
   }
   .btn{
     display:inline-flex;align-items:center;justify-content:center;gap:6px;
-    background:var(--accent);color:#fff;border:none;border-radius:10px;
-    padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;
+    background:var(--accent);color:#fff;border:none;border-radius:8px;
+    padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;
+    text-transform:uppercase;letter-spacing:.04em;
   }
   .btn:active{background:var(--accent-dark);}
   .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--border);}
   .btn.danger{background:transparent;color:var(--red);border:1px solid var(--red);}
   .btn.block{width:100%;}
-  .btn.small{padding:6px 10px;font-size:12px;}
+  .btn.small{padding:7px 12px;font-size:11.5px;}
+  .btn svg{width:15px;height:15px;}
   .banner{
-    background:linear-gradient(135deg,var(--accent),#ff9a4d);color:#fff;border-radius:var(--radius);
+    background:var(--accent);color:#fff;border-radius:var(--radius);
     padding:14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;
   }
-  .banner b{display:block;font-size:15px;}
+  .banner b{display:block;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;}
   .banner span{font-size:12px;opacity:.9;}
-  .section-title{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px;font-weight:700;}
+  .section-title{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:18px 0 8px;font-weight:700;}
   .exercise-card{margin-bottom:12px;}
   .exercise-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
   .exercise-name{font-size:15px;font-weight:700;cursor:pointer;}
-  .exercise-target{color:var(--muted);font-size:12.5px;margin-top:2px;}
+  .exercise-target{color:var(--muted);font-size:12px;margin-top:2px;}
   .note{
-    margin-top:8px;font-size:12.5px;background:rgba(255,122,26,.1);color:var(--accent-dark);
-    padding:6px 8px;border-radius:8px;
+    margin-top:8px;font-size:12px;background:rgba(168,99,31,.1);color:var(--accent-dark);
+    padding:6px 8px;border-radius:6px;border-left:2px solid var(--accent);
   }
-  @media (prefers-color-scheme: dark){ .note{color:#ffb066;} }
+  @media (prefers-color-scheme: dark){ .note{color:#dba977;} }
   .prev{color:var(--muted);font-size:12px;margin-top:8px;}
   .set-row{
     display:grid;grid-template-columns:22px 1fr 1fr 1fr 26px;gap:6px;align-items:center;
     margin-top:8px;
   }
-  .set-row .snum{color:var(--muted);font-size:12px;text-align:center;}
+  .set-row .snum{color:var(--muted);font-size:12px;text-align:center;font-weight:600;}
   .set-row input{
-    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+    width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;
     padding:8px 6px;font-size:14px;color:var(--text);text-align:center;
   }
   .set-row.done input{border-color:var(--green);}
   .set-row .rm{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;}
   .field-labels{
     display:grid;grid-template-columns:22px 1fr 1fr 1fr 26px;gap:6px;margin-top:10px;
-    font-size:10.5px;color:var(--muted);text-align:center;text-transform:uppercase;
+    font-size:10px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;
   }
   .addset{margin-top:10px;background:none;border:1px dashed var(--border);color:var(--muted);
-    border-radius:8px;padding:7px;width:100%;font-size:13px;cursor:pointer;}
+    border-radius:6px;padding:7px;width:100%;font-size:11.5px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em;font-weight:600;}
   .row-between{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .totals-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
-  .stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center;}
-  .stat b{display:block;font-size:18px;}
-  .stat span{font-size:11px;color:var(--muted);}
+  .stat{background:var(--bg);border-radius:8px;padding:10px;text-align:center;}
+  .stat b{display:block;font-size:18px;font-variant-numeric:tabular-nums;}
+  .stat span{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
   .muscle-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--border);}
   .muscle-row:last-child{border-bottom:none;}
+  .muscle-row b{font-variant-numeric:tabular-nums;}
   input.ghost{
     background:transparent;border:none;border-bottom:1px dashed var(--border);color:var(--text);
     font-size:14px;padding:4px 0;width:100%;
@@ -106,8 +111,8 @@
   input.name-input{font-size:15px;font-weight:700;border-bottom:1px solid var(--border);}
   .ex-edit-card{position:relative;}
   .ex-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
-  .ex-edit-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px;}
-  .ex-edit-grid input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px;font-size:13px;color:var(--text);}
+  .ex-edit-grid label{font-size:10.5px;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.03em;}
+  .ex-edit-grid input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px;font-size:13px;color:var(--text);}
   .del-x{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;}
   nav.bottom{
     position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);
@@ -115,14 +120,18 @@
   }
   nav.bottom button{
     flex:1;background:none;border:none;padding:10px 4px 8px;display:flex;flex-direction:column;
-    align-items:center;gap:2px;color:var(--muted);font-size:11px;cursor:pointer;
+    align-items:center;gap:3px;color:var(--muted);font-size:10.5px;cursor:pointer;
+    text-transform:uppercase;letter-spacing:.03em;font-weight:600;
   }
   nav.bottom button.active{color:var(--accent);}
-  nav.bottom button .ic{font-size:19px;}
+  nav.bottom button svg{width:20px;height:20px;}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:30px 10px;}
   .session-card{cursor:pointer;}
   .session-card .row-between b{font-size:14px;}
   .session-card .row-between span{font-size:12px;color:var(--muted);}
+  .status-line{display:flex;align-items:center;gap:8px;justify-content:center;}
+  .status-line svg{width:18px;height:18px;color:var(--green);}
+  .status-line span{font-size:13px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.03em;}
   textarea{font-family:inherit;}
   .file-input{display:none;}
 </style>
@@ -137,14 +146,27 @@
 var STORAGE_KEY = "gymTrackerV1";
 
 var MUSCLE_COLORS = {
-  "Pecho":"#ff7a1a","Espalda":"#2f8fef","Cuádriceps":"#22b07d","Isquiotibiales":"#16a37b",
-  "Glúteos":"#e0567c","Hombros":"#a366e0","Bíceps":"#f2b705","Tríceps":"#f2905a",
-  "Abdomen":"#5ac8d8","Pantorrillas":"#8d99ae","General":"#9aa0a8"
+  "Pecho":"#b5651d","Espalda":"#3a6ea5","Cuádriceps":"#3f8f6d","Isquiotibiales":"#2f7460",
+  "Glúteos":"#a64d63","Hombros":"#6a5b95","Bíceps":"#b08d2e","Tríceps":"#b06a3a",
+  "Abdomen":"#3f8c96","Pantorrillas":"#767b85","General":"#7a7d84"
 };
-function muscleColor(m){ return MUSCLE_COLORS[m] || "#9aa0a8"; }
+function muscleColor(m){ return MUSCLE_COLORS[m] || "#7a7d84"; }
 function uid(){ return "x"+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
 function ex(name,muscle,sets,repRange,rir,note,noteLabel){
   return {id:uid(),name:name,muscle:muscle,sets:sets,repRange:repRange,rir:rir,note:note||"",noteLabel:noteLabel||""};
+}
+
+var ICONS = {
+  dumbbell: '<path d="M6.5 6.5v11M17.5 6.5v11M6.5 9h-2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h2M17.5 9h2a1 1 0 0 0 1 1v4a1 1 0 0 0-1 1h-2M9 12h6"/>',
+  history: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
+  edit: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'
+};
+function icon(name){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS[name]+'</svg>';
 }
 
 function defaultRoutines(){
@@ -245,7 +267,7 @@ function startWorkout(routineId){
   var routine = state.routines.find(function(r){return r.id===routineId;});
   if(!routine) return;
   if(state.activeSession){
-    if(!confirm("Ya tienes un entrenamiento en curso (" + state.activeSession.routineName + "). ¿Descartarlo y empezar uno nuevo?")) return;
+    if(!confirm("Ya existe un entrenamiento en curso (" + state.activeSession.routineName + "). ¿Deseas descartarlo y comenzar uno nuevo?")) return;
   }
   var session = {
     id: uid(), routineId: routine.id, routineName: routine.name,
@@ -264,7 +286,7 @@ function startWorkout(routineId){
 }
 
 function finishWorkout(){
-  if(!confirm("¿Terminar y guardar este entrenamiento?")) return;
+  if(!confirm("¿Finalizar y registrar este entrenamiento?")) return;
   var session = state.activeSession;
   session.finishedAt = Date.now();
   session.durationMin = Math.max(1, Math.round((session.finishedAt - session.startedAt)/60000));
@@ -276,7 +298,7 @@ function finishWorkout(){
 }
 
 function cancelWorkout(){
-  if(!confirm("¿Descartar este entrenamiento sin guardar?")) return;
+  if(!confirm("¿Descartar este entrenamiento sin registrarlo?")) return;
   state.activeSession = null;
   state.view = "home";
   saveState(); render();
@@ -300,7 +322,7 @@ function renderRoutineCard(r){
       '<div class="meta">'+r.exercises.length+' ejercicios</div>' +
       '<div class="chips">'+renderMuscleChips(r)+'</div>' +
     '</div>' +
-    '<button class="icon-btn" data-action="edit-routine" data-routine="'+r.id+'">✏️</button>' +
+    '<button class="icon-btn" data-action="edit-routine" data-routine="'+r.id+'">'+icon('edit')+'</button>' +
     '<button class="btn small" data-action="start-workout" data-routine="'+r.id+'">Iniciar</button>' +
   '</div>';
 }
@@ -362,7 +384,7 @@ function renderExerciseCard(entry, idx, sessionId, readonly){
   }
   var labels = readonly ? "" : '<div class="field-labels"><div></div><div>Peso</div><div>Reps</div><div>RIR</div><div></div></div>';
   var rows = entry.sets.map(function(s,si){ return renderSetRow(entry, idx, si, s, readonly); }).join("");
-  var addBtn = readonly ? "" : '<button class="addset" data-action="add-set" data-entry="'+idx+'">+ Serie</button>';
+  var addBtn = readonly ? "" : '<button class="addset" data-action="add-set" data-entry="'+idx+'">+ Añadir serie</button>';
   var chip = '<span class="chip" style="background:'+muscleColor(entry.muscle)+'">'+entry.muscle+'</span>';
   return '<div class="card exercise-card">' +
     '<div class="exercise-head"><div>'+nameHtml+'</div>'+chip+'</div>' +
@@ -376,8 +398,8 @@ function renderWorkout(){
   var cards = s.entries.map(function(entry, idx){ return renderExerciseCard(entry, idx, s.id, false); }).join("");
   return cards +
     '<button class="btn secondary block" data-action="add-exercise" style="margin:6px 0 16px;">+ Agregar ejercicio</button>' +
-    '<button class="btn block" data-action="finish-workout" style="margin-bottom:10px;">Terminar entrenamiento</button>' +
-    '<button class="btn danger block" data-action="cancel-workout">Descartar</button>';
+    '<button class="btn block" data-action="finish-workout" style="margin-bottom:10px;">Finalizar entrenamiento</button>' +
+    '<button class="btn danger block" data-action="cancel-workout">Descartar entrenamiento</button>';
 }
 
 function renderSessionDetail(session, isSummary){
@@ -387,7 +409,7 @@ function renderSessionDetail(session, isSummary){
     var mm = totals.muscle[m];
     return '<div class="muscle-row"><span>'+m+'</span><b>'+mm.done+'/'+mm.planned+'</b></div>';
   }).join("");
-  var head = isSummary ? '<div class="card" style="text-align:center;"><div style="font-size:15px;font-weight:700;color:var(--green);">✓ Entrenamiento guardado</div></div>' : "";
+  var head = isSummary ? '<div class="card"><div class="status-line">'+icon('check')+'<span>Entrenamiento registrado</span></div></div>' : "";
   return head +
   '<div class="card">' +
     '<div class="row-between"><b>'+session.routineName+'</b><span style="color:var(--muted);font-size:12px;">'+fmtDate(session.date)+'</span></div>' +
@@ -401,11 +423,11 @@ function renderSessionDetail(session, isSummary){
   '<div class="card"><div class="section-title" style="margin-top:0;">Por músculo</div>'+muscleRows+'</div>' +
   cards +
   (isSummary ? '<button class="btn block" data-action="goto" data-view="home">Volver a inicio</button>' :
-    '<button class="btn danger block" data-action="delete-session" data-session="'+session.id+'">Eliminar entrenamiento</button>');
+    '<button class="btn danger block" data-action="delete-session" data-session="'+session.id+'">Eliminar registro</button>');
 }
 
 function renderHistory(){
-  if(state.sessions.length===0) return '<div class="empty">Aún no tienes entrenamientos guardados.</div>';
+  if(state.sessions.length===0) return '<div class="empty">Aún no hay entrenamientos registrados.</div>';
   var byRoutine = {};
   var order = [];
   state.sessions.forEach(function(s){
@@ -436,12 +458,12 @@ function renderExerciseProgress(name){
       if(e.name===name) rows.unshift({date:state.activeSession.date, sets:e.sets, current:true});
     });
   }
-  if(rows.length===0) return '<div class="empty">Sin historial todavía para '+name+'.</div>';
+  if(rows.length===0) return '<div class="empty">Sin historial registrado para '+name+'.</div>';
   return rows.map(function(r){
     var setsHtml = r.sets.filter(function(s){return s.weight!==""||s.reps!=="";}).map(function(s){
       return '<div class="muscle-row"><span>'+(s.weight||"–")+' kg × '+(s.reps||"–")+' reps</span><b>'+(s.rir!==""&&s.rir!==undefined?"@"+s.rir:"")+'</b></div>';
     }).join("");
-    return '<div class="card"><div class="row-between"><b>'+fmtDate(r.date)+'</b>'+(r.current?'<span style="color:var(--accent);font-size:12px;">en curso</span>':'')+'</div>'+(setsHtml||'<div class="meta" style="color:var(--muted);font-size:12px;">Sin datos</div>')+'</div>';
+    return '<div class="card"><div class="row-between"><b>'+fmtDate(r.date)+'</b>'+(r.current?'<span style="color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;">En curso</span>':'')+'</div>'+(setsHtml||'<div class="meta" style="color:var(--muted);font-size:12px;">Sin datos</div>')+'</div>';
   }).join("");
 }
 
@@ -458,13 +480,13 @@ function renderEditRoutine(routineId){
         '<div><label>Rango reps</label><input data-role="ex-reprange" data-routine="'+r.id+'" data-exercise="'+e.id+'" value="'+e.repRange+'"></div>' +
         '<div><label>RIR</label><input inputmode="decimal" data-role="ex-rir" data-routine="'+r.id+'" data-exercise="'+e.id+'" value="'+e.rir+'"></div>' +
       '</div>' +
-      '<div style="margin-top:8px;"><label style="font-size:11px;color:var(--muted);">Nota (opcional)</label><input class="ghost" data-role="ex-note" data-routine="'+r.id+'" data-exercise="'+e.id+'" value="'+e.note+'" placeholder="Ej: Superset con..."></div>' +
+      '<div style="margin-top:8px;"><label style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;">Nota (opcional)</label><input class="ghost" data-role="ex-note" data-routine="'+r.id+'" data-exercise="'+e.id+'" value="'+e.note+'" placeholder="Ej: Superset con..."></div>' +
     '</div>';
   }).join("");
-  return '<input class="ghost name-input" style="font-size:20px;margin-bottom:14px;" data-role="routine-name" data-routine="'+r.id+'" value="'+r.name+'">' +
+  return '<input class="ghost name-input" style="font-size:19px;margin-bottom:14px;" data-role="routine-name" data-routine="'+r.id+'" value="'+r.name+'">' +
     exHtml +
     '<button class="btn secondary block" data-action="add-exercise-to-routine" data-routine="'+r.id+'" style="margin:6px 0 16px;">+ Agregar ejercicio</button>' +
-    '<button class="btn block" data-action="goto" data-view="home" style="margin-bottom:10px;">Guardar y volver</button>' +
+    '<button class="btn block" data-action="goto" data-view="home" style="margin-bottom:10px;">Guardar cambios</button>' +
     '<button class="btn danger block" data-action="remove-routine" data-routine="'+r.id+'">Eliminar rutina</button>';
 }
 
@@ -472,10 +494,10 @@ function renderData(){
   var count = state.sessions.length;
   return '<div class="card">' +
       '<div class="section-title" style="margin-top:0;">Respaldo de datos</div>' +
-      '<div class="meta" style="color:var(--muted);font-size:13px;">Tienes '+count+' entrenamientos guardados en este dispositivo. Exporta un respaldo para no perder tu progreso, o impórtalo en otro celular/navegador.</div>' +
+      '<div class="meta" style="color:var(--muted);font-size:13px;">Este dispositivo tiene '+count+' entrenamientos registrados. Exporta un respaldo periódicamente para conservar tu historial, o impórtalo en otro navegador.</div>' +
     '</div>' +
-    '<button class="btn block" data-action="export-data" style="margin-bottom:10px;">⬇ Exportar respaldo (JSON)</button>' +
-    '<button class="btn secondary block" data-action="import-data">⬆ Importar respaldo</button>';
+    '<button class="btn block" data-action="export-data" style="margin-bottom:10px;">'+icon('download')+' Exportar respaldo</button>' +
+    '<button class="btn secondary block" data-action="import-data">'+icon('upload')+' Importar respaldo</button>';
 }
 
 // ---------- main render ----------
@@ -485,20 +507,20 @@ function headerFor(view){
   if(view==="home"){ title="Mi Entrenamiento"; }
   else if(view==="workout"){
     title = state.activeSession ? state.activeSession.routineName : "Entrenamiento";
-    left = '<button class="icon-btn" data-action="goto" data-view="home">‹</button>';
+    left = '<button class="icon-btn chevron" data-action="goto" data-view="home">‹</button>';
     right = '<span class="timer" id="timerDisplay">00:00</span>';
   } else if(view==="history"){ title="Historial"; }
   else if(view==="sessionDetail"){
     title = "Detalle";
-    left = '<button class="icon-btn" data-action="goto" data-view="history">‹</button>';
+    left = '<button class="icon-btn chevron" data-action="goto" data-view="history">‹</button>';
   } else if(view==="sessionSummary"){
     title = "Resumen";
   } else if(view==="exerciseProgress"){
     title = state.progressExercise ? decodeURIComponent(state.progressExercise) : "Progreso";
-    left = '<button class="icon-btn" data-action="goto" data-view="back">‹</button>';
+    left = '<button class="icon-btn chevron" data-action="goto" data-view="back">‹</button>';
   } else if(view==="editRoutine"){
     title = "Editar rutina";
-    left = '<button class="icon-btn" data-action="goto" data-view="home">‹</button>';
+    left = '<button class="icon-btn chevron" data-action="goto" data-view="home">‹</button>';
   } else if(view==="data"){ title="Datos"; }
   return '<header class="top">'+left+'<h1>'+title+'</h1>'+right+'</header>';
 }
@@ -508,9 +530,9 @@ function bottomNavFor(view){
   function cls(v){ return v===active ? "active" : ""; }
   if(view==="workout" || view==="sessionSummary") return "";
   return '<nav class="bottom">' +
-    '<button class="'+cls("home")+'" data-action="goto" data-view="home"><span class="ic">🏋️</span>Rutinas</button>' +
-    '<button class="'+cls("history")+'" data-action="goto" data-view="history"><span class="ic">📋</span>Historial</button>' +
-    '<button class="'+cls("data")+'" data-action="goto" data-view="data"><span class="ic">💾</span>Datos</button>' +
+    '<button class="'+cls("home")+'" data-action="goto" data-view="home">'+icon('dumbbell')+'Rutinas</button>' +
+    '<button class="'+cls("history")+'" data-action="goto" data-view="history">'+icon('history')+'Historial</button>' +
+    '<button class="'+cls("data")+'" data-action="goto" data-view="data">'+icon('save')+'Datos</button>' +
   '</nav>';
 }
 
@@ -683,7 +705,7 @@ document.getElementById("importFile").addEventListener("change", function(e){
       saveState(); render();
       alert("Datos importados correctamente.");
     }catch(err){
-      alert("No se pudo leer el archivo. Asegúrate de que sea un respaldo válido.");
+      alert("No se pudo leer el archivo. Verifica que sea un respaldo válido.");
     }
   };
   reader.readAsText(file);
