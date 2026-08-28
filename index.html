@@ -259,6 +259,14 @@
     text-transform:uppercase;letter-spacing:.03em;transition:background .15s ease,color .15s ease,border-color .15s ease;
   }
   .day-chip.active{background:var(--grad);color:var(--on-ink);border-color:transparent;}
+  .checkin-scale-row{margin-bottom:18px;}
+  .checkin-scale-row:last-child{margin-bottom:0;}
+  .checkin-scale-label{display:flex;justify-content:space-between;font-size:13px;color:var(--text);margin-bottom:8px;font-weight:600;}
+  .checkin-scale-label b{font-variant-numeric:tabular-nums;color:var(--accent);font-family:"Fraunces",Georgia,serif;font-size:15px;}
+  input[type="range"]{
+    width:100%;accent-color:var(--accent-primary);height:20px;margin:0;
+    background:transparent;cursor:pointer;
+  }
 
   @keyframes wrappedIn{ from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
   .wrapped-screen{
@@ -364,6 +372,7 @@ var ICONS = {
   history: '<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
   save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
   share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
+  checkin: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
   edit: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
   download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
@@ -492,7 +501,7 @@ function defaultRoutines(){
 }
 
 function defaultState(){
-  return { routines: defaultRoutines(), sessions: [], activeSession: null, view:"home", editingRoutine:null, lastSessionId:null };
+  return { routines: defaultRoutines(), sessions: [], checkins: [], activeSession: null, view:"home", editingRoutine:null, lastSessionId:null, checkinChartMetric:"weight" };
 }
 
 var state = loadState();
@@ -504,6 +513,8 @@ function loadState(){
     if(!parsed.routines || !parsed.sessions) return defaultState();
     parsed.view = "home"; parsed.editingRoutine = null;
     parsed.routines.forEach(function(r){ if(!r.days) r.days = []; });
+    if(!parsed.checkins) parsed.checkins = [];
+    if(!parsed.checkinChartMetric) parsed.checkinChartMetric = "weight";
     return parsed;
   }catch(e){ return defaultState(); }
 }
@@ -619,6 +630,50 @@ function getLastPerformance(name, excludeId){
     if(found) return {date:s.date, sets:found.sets};
   }
   return null;
+}
+
+var CHECKIN_METRICS = [
+  {key:"weight", label:"Peso", unit:"kg", type:"number", placeholder:"ej: 78.5", step:"0.1"},
+  {key:"sleepHours", label:"Sueño", unit:"h", type:"number", placeholder:"ej: 7.5", step:"0.5"},
+  {key:"energy", label:"Energía", unit:"/10", type:"scale"},
+  {key:"stress", label:"Estrés", unit:"/10", type:"scale"},
+  {key:"mood", label:"Ánimo", unit:"/10", type:"scale"},
+  {key:"soreness", label:"Dolor muscular", unit:"/10", type:"scale"}
+];
+function checkinMetric(key){ return CHECKIN_METRICS.find(function(m){ return m.key===key; }); }
+
+function findTodayCheckin(){
+  var today = new Date().toDateString();
+  return state.checkins.find(function(c){ return new Date(c.date).toDateString()===today; });
+}
+
+function initCheckinDraft(){
+  var existing = findTodayCheckin();
+  if(existing){
+    state.checkinDraft = {
+      weight:existing.weight||"", sleepHours:existing.sleepHours||"",
+      energy:existing.energy||5, stress:existing.stress||5,
+      mood:existing.mood||5, soreness:existing.soreness||5
+    };
+  } else {
+    var lastWeight = state.checkins.length ? (state.checkins[0].weight||"") : "";
+    state.checkinDraft = {weight:lastWeight, sleepHours:"", energy:5, stress:5, mood:5, soreness:5};
+  }
+}
+
+function saveCheckin(){
+  var d = state.checkinDraft;
+  var existing = findTodayCheckin();
+  var values = {
+    weight: d.weight, sleepHours: d.sleepHours,
+    energy: +d.energy, stress: +d.stress, mood: +d.mood, soreness: +d.soreness
+  };
+  if(existing){
+    Object.assign(existing, values);
+  } else {
+    state.checkins.unshift(Object.assign({id:uid(), date:new Date().toISOString()}, values));
+  }
+  saveState();
 }
 
 function startWorkout(routineId){
@@ -919,8 +974,10 @@ function renderHistory(){
   }).join("");
 }
 
-function buildProgressChart(points){
+function buildProgressChart(points, unit, title){
   if(points.length<2) return "";
+  unit = unit===undefined ? "kg" : unit;
+  title = title || "Progreso (peso máximo por sesión)";
   var w=311, h=110, padX=8, padY=16;
   var vals = points.map(function(p){return p.value;});
   var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
@@ -934,8 +991,10 @@ function buildProgressChart(points){
   }).join("");
   var lastX = padX+(points.length-1)*stepX;
   var lastY = y(points[points.length-1].value);
-  var lastLabel = '<text x="'+lastX+'" y="'+(lastY-8)+'" font-size="11" style="fill:var(--accent)" text-anchor="end" font-weight="700">'+Math.round(points[points.length-1].value)+' kg</text>';
-  return '<div class="card"><div class="section-title" style="margin-top:0;">Progreso (peso máximo por sesión)</div>' +
+  var lastVal = points[points.length-1].value;
+  var lastText = (Math.round(lastVal*10)/10)+unit;
+  var lastLabel = '<text x="'+lastX+'" y="'+(lastY-8)+'" font-size="11" style="fill:var(--accent)" text-anchor="end" font-weight="700">'+lastText+'</text>';
+  return '<div class="card"><div class="section-title" style="margin-top:0;">'+title+'</div>' +
     '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:'+h+'px;overflow:visible;">' +
       '<line x1="'+padX+'" y1="'+(h-padY)+'" x2="'+(w-padX)+'" y2="'+(h-padY)+'" style="stroke:var(--border)" stroke-width="1"/>' +
       '<polyline points="'+linePts+'" fill="none" style="stroke:var(--accent)" stroke-width="2"/>' +
@@ -1167,6 +1226,67 @@ function shareWrapped(){
   });
 }
 
+function renderCheckin(){
+  if(!state.checkinDraft) initCheckinDraft();
+  var d = state.checkinDraft;
+  var today = findTodayCheckin();
+
+  var scaleRows = CHECKIN_METRICS.filter(function(m){ return m.type==="scale"; }).map(function(m){
+    var val = d[m.key];
+    return '<div class="checkin-scale-row">' +
+      '<div class="checkin-scale-label"><span>'+m.label+'</span><b id="checkinVal-'+m.key+'">'+val+'</b></div>' +
+      '<input type="range" min="1" max="10" step="1" value="'+val+'" data-role="checkin-scale" data-metric="'+m.key+'">' +
+    '</div>';
+  }).join("");
+
+  var formCard = '<div class="card">' +
+    '<div class="section-title" style="margin-top:0;">'+(today?"Check-in de hoy (editando)":"Check-in de hoy")+'</div>' +
+    '<div class="ex-edit-grid" style="margin-top:0;">' +
+      '<div><label>Peso (kg)</label><input inputmode="decimal" data-role="checkin-weight" value="'+(d.weight||"")+'" placeholder="ej: 78.5"></div>' +
+      '<div><label>Horas de sueño</label><input inputmode="decimal" data-role="checkin-sleep" value="'+(d.sleepHours||"")+'" placeholder="ej: 7.5"></div>' +
+    '</div>' +
+    '<div style="margin-top:16px;">'+scaleRows+'</div>' +
+    '<button class="btn block" data-action="save-checkin" style="margin-top:4px;">Guardar check-in</button>' +
+  '</div>';
+
+  var metric = checkinMetric(state.checkinChartMetric) || CHECKIN_METRICS[0];
+  var chips = CHECKIN_METRICS.map(function(m){
+    return '<button class="day-chip'+(m.key===metric.key?" active":"")+'" data-action="set-checkin-metric" data-metric="'+m.key+'">'+m.label+'</button>';
+  }).join("");
+  var chronological = state.checkins.slice().reverse();
+  var points = chronological.map(function(c){
+    var v = parseFloat(c[metric.key]);
+    return isNaN(v) ? null : {date:c.date, value:v};
+  }).filter(function(p){ return p!==null; });
+  var chartHtml = buildProgressChart(points, metric.unit, metric.label+" en el tiempo");
+  if(!chartHtml){
+    chartHtml = '<div class="empty">Registra al menos 2 días para ver tu progreso de '+metric.label.toLowerCase()+'.</div>';
+  }
+
+  var historyHtml = "";
+  if(state.checkins.length===0){
+    historyHtml = '<div class="empty">Aún no tienes check-ins registrados.</div>';
+  } else {
+    historyHtml = state.checkins.map(function(c){
+      var stats = CHECKIN_METRICS.map(function(m){
+        var v = c[m.key];
+        return '<div class="stat"><b>'+(v!==undefined && v!==""? v : "–")+'</b><span>'+(m.unit||m.label)+'</span></div>';
+      }).join("");
+      return '<div class="card">' +
+        '<div class="row-between"><b>'+fmtDate(c.date)+'</b><button class="icon-btn" data-action="delete-checkin" data-checkin="'+c.id+'" style="color:var(--red)">×</button></div>' +
+        '<div class="totals-grid" style="grid-template-columns:repeat(3,1fr);margin-top:8px;">'+stats+'</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  return formCard +
+    '<div class="section-title">Progreso</div>' +
+    '<div class="day-picker">'+chips+'</div>' +
+    chartHtml +
+    '<div class="section-title">Historial de check-ins</div>' +
+    historyHtml;
+}
+
 function renderData(){
   var count = state.sessions.length;
   return '<div class="card">' +
@@ -1193,6 +1313,7 @@ function headerFor(view){
     left = '<button class="icon-btn chevron" data-action="goto" data-view="home">‹</button>';
     right = '<span class="timer" id="timerDisplay">00:00</span>';
   } else if(view==="history"){ title="Historial"; }
+  else if(view==="checkin"){ title="Check-in diario"; }
   else if(view==="sessionDetail"){
     title = "Detalle";
     left = '<button class="icon-btn chevron" data-action="goto" data-view="history">‹</button>';
@@ -1218,11 +1339,12 @@ function headerFor(view){
 }
 
 function bottomNavFor(view){
-  var active = (view==="home"||view==="editRoutine"||view==="routinePreview") ? "home" : (view==="history"||view==="sessionDetail"||view==="exerciseProgress") ? "history" : "";
+  var active = (view==="home"||view==="editRoutine"||view==="routinePreview") ? "home" : (view==="checkin") ? "checkin" : (view==="history"||view==="sessionDetail"||view==="exerciseProgress") ? "history" : "";
   function cls(v){ return v===active ? "active" : ""; }
   if(view==="workout" || view==="sessionSummary" || view==="routinePreview" || view==="wrapped") return "";
   return '<nav class="bottom">' +
     '<button class="'+cls("home")+'" data-action="goto" data-view="home">'+icon('dumbbell')+'Rutinas</button>' +
+    '<button class="'+cls("checkin")+'" data-action="goto" data-view="checkin">'+icon('checkin')+'Check-in</button>' +
     '<button class="'+cls("history")+'" data-action="goto" data-view="history">'+icon('history')+'Historial</button>' +
   '</nav>';
 }
@@ -1246,6 +1368,7 @@ function render(){
     case "editRoutine": body = renderEditRoutine(state.editingRoutine); break;
     case "routinePreview": body = renderRoutinePreview(state.previewRoutineId); break;
     case "data": body = renderData(); break;
+    case "checkin": body = renderCheckin(); break;
     case "wrapped": body = renderWrapped(); break;
     default: body = renderHome();
   }
@@ -1272,6 +1395,7 @@ app.addEventListener("click", function(e){
     var v = t.dataset.view;
     if(v==="back"){ state.view = state.activeSession ? "workout" : "history"; }
     else state.view = v;
+    if(v==="checkin") initCheckinDraft();
     render(); return;
   }
   if(action==="start-workout"){ startWorkout(t.dataset.routine); return; }
@@ -1368,6 +1492,24 @@ app.addEventListener("click", function(e){
     routine2.exercises = routine2.exercises.filter(function(e){return e.id!==t.dataset.exercise;});
     saveState(); render(); return;
   }
+  if(action==="save-checkin"){
+    vibrate(50);
+    saveCheckin();
+    render();
+    return;
+  }
+  if(action==="set-checkin-metric"){
+    state.checkinChartMetric = t.dataset.metric;
+    render(); return;
+  }
+  if(action==="delete-checkin"){
+    showConfirm("¿Eliminar este check-in?").then(function(ok){
+      if(!ok) return;
+      state.checkins = state.checkins.filter(function(c){return c.id!==t.dataset.checkin;});
+      saveState(); render();
+    });
+    return;
+  }
   if(action==="export-data"){
     var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
     var url = URL.createObjectURL(blob);
@@ -1388,6 +1530,15 @@ app.addEventListener("input", function(e){
   var role = t.dataset.role;
   if(!role) return;
 
+  if(role==="checkin-weight"){ state.checkinDraft.weight = t.value; saveState(); return; }
+  if(role==="checkin-sleep"){ state.checkinDraft.sleepHours = t.value; saveState(); return; }
+  if(role==="checkin-scale"){
+    var metric = t.dataset.metric;
+    state.checkinDraft[metric] = t.value;
+    var label = document.getElementById("checkinVal-"+metric);
+    if(label) label.textContent = t.value;
+    saveState(); return;
+  }
   if(role==="set-weight" || role==="set-reps" || role==="set-rir"){
     var ei=+t.dataset.entry, si=+t.dataset.set;
     var field = role==="set-weight"?"weight":role==="set-reps"?"reps":"rir";
