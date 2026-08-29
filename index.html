@@ -320,6 +320,25 @@
   .dialog-message{font-size:14.5px;color:var(--text);margin-bottom:18px;line-height:1.45;}
   .dialog-actions{display:flex;gap:10px;}
   .dialog-actions .btn{flex:1;}
+  .auth-screen{
+    position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+    background:var(--bg-app);padding:24px;
+  }
+  .auth-card{width:100%;max-width:360px;}
+  .auth-brand{width:44px;height:44px;margin:0 auto 18px;}
+  .auth-brand svg{width:26px;height:26px;}
+  .auth-title{text-align:center;font-size:14px;font-weight:800;letter-spacing:.12em;color:var(--text);margin-bottom:28px;}
+  .auth-tabs{display:flex;gap:6px;background:var(--bg-alt);border-radius:var(--radius-sm);padding:4px;margin-bottom:18px;}
+  .auth-tab{flex:1;background:none;border:none;padding:10px;border-radius:9px;color:var(--muted);font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;cursor:pointer;}
+  .auth-tab.active{background:var(--card);color:var(--text);}
+  .auth-error{color:var(--red);font-size:12.5px;margin-bottom:10px;min-height:1px;}
+  .auth-input{
+    width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:13px 14px;font-size:16px;color:var(--text);margin-bottom:10px;
+  }
+  .auth-input:focus{outline:none;border-color:var(--accent);}
+  .auth-signup-extra{margin-bottom:4px;}
+  .auth-checkbox{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin:2px 0 10px;}
 </style>
 </head>
 <body>
@@ -329,6 +348,24 @@
   <div class="rest-actions">
     <button class="rest-btn" id="restExtendBtn">+15s</button>
     <button class="rest-btn" id="restSkipBtn">Saltar</button>
+  </div>
+</div>
+<div id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="brand-mark auth-brand"><svg viewBox="0 0 32 32" fill="currentColor"><rect x="2" y="5" width="12" height="4" rx="0.9"/><rect x="6" y="5" width="4" height="22" rx="0.9"/><rect x="17" y="5" width="11" height="4" rx="0.9"/><rect x="17" y="5" width="4" height="22" rx="0.9"/><rect x="17" y="23" width="11" height="4" rx="0.9"/></svg></div>
+    <div class="auth-title">TRILLAT COACHING</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="authTabLogin">Iniciar sesión</button>
+      <button class="auth-tab" id="authTabSignup">Crear cuenta</button>
+    </div>
+    <div id="authError" class="auth-error"></div>
+    <input type="email" id="authEmail" class="auth-input" placeholder="Correo electrónico" autocomplete="email">
+    <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña" autocomplete="current-password">
+    <div id="authSignupExtra" class="auth-signup-extra" style="display:none;">
+      <div id="authInviteRow"><input type="text" id="authInvite" class="auth-input" placeholder="Código de invitación de tu coach"></div>
+      <label class="auth-checkbox"><input type="checkbox" id="authIsCoach"> Soy coach (sin código de invitación)</label>
+    </div>
+    <button class="btn block" id="authSubmitBtn" style="margin-top:6px;">Iniciar sesión</button>
   </div>
 </div>
 <input type="file" id="importFile" class="file-input" accept="application/json">
@@ -341,11 +378,17 @@
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
 "use strict";
 
 var STORAGE_KEY = "gymTrackerV1";
+var SUPABASE_URL = "https://zywlyaxzbyrhhdegsexw.supabase.co";
+var SUPABASE_KEY = "sb_publishable_OVEIt6y_2iyUaxINdpu5jA_i4e5cBGQ";
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+var currentUser = null;
+var coachNotesCache = [];
 
 var MUSCLE_COLORS = {
   "Pecho":"#8a7f6d","Espalda":"#4a6fa1","Cuádriceps":"#3f8f6d","Isquiotibiales":"#2f7460",
@@ -504,21 +547,39 @@ function defaultState(){
   return { routines: defaultRoutines(), sessions: [], checkins: [], activeSession: null, view:"home", editingRoutine:null, lastSessionId:null, checkinChartMetric:"weight" };
 }
 
-var state = loadState();
-function loadState(){
+var state = defaultState();
+
+function normalizeState(parsed){
+  if(!parsed || !parsed.routines || !parsed.sessions) return defaultState();
+  parsed.view = "home"; parsed.editingRoutine = null;
+  parsed.routines.forEach(function(r){ if(!r.days) r.days = []; });
+  if(!parsed.checkins) parsed.checkins = [];
+  if(!parsed.checkinChartMetric) parsed.checkinChartMetric = "weight";
+  return parsed;
+}
+
+function loadLocalBackup(){
   try{
     var raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return defaultState();
-    var parsed = JSON.parse(raw);
-    if(!parsed.routines || !parsed.sessions) return defaultState();
-    parsed.view = "home"; parsed.editingRoutine = null;
-    parsed.routines.forEach(function(r){ if(!r.days) r.days = []; });
-    if(!parsed.checkins) parsed.checkins = [];
-    if(!parsed.checkinChartMetric) parsed.checkinChartMetric = "weight";
-    return parsed;
-  }catch(e){ return defaultState(); }
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+async function fetchClientData(clientId){
+  var res = await sb.from("client_data").select("data").eq("client_id", clientId).maybeSingle();
+  if(res.error){ console.error("fetchClientData:", res.error.message); return defaultState(); }
+  return normalizeState(res.data ? res.data.data : null);
+}
+
+var saveTimer = null;
+function saveState(){
+  if(!currentUser) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    sb.from("client_data").upsert({ client_id: currentUser.id, data: state, updated_at: new Date().toISOString() })
+      .then(function(res){ if(res.error) console.error("saveState:", res.error.message); });
+  }, 400);
+}
 
 var timerInterval = null;
 
@@ -835,6 +896,20 @@ function renderHero(){
   '</div>';
 }
 
+function renderCoachNotes(){
+  var unread = coachNotesCache.filter(function(n){ return !n.read_at; });
+  if(unread.length===0) return "";
+  return '<div class="card" style="border-color:var(--accent);">' +
+    '<div class="section-title" style="margin-top:0;">Notas de tu coach</div>' +
+    unread.map(function(n){
+      return '<div class="note" style="margin-top:8px;">' +
+        '<div>'+n.message+'</div>' +
+        '<button class="fill-btn" style="margin-top:8px;" data-action="ack-note" data-note="'+n.id+'">Marcar como leída</button>' +
+      '</div>';
+    }).join("") +
+  '</div>';
+}
+
 function renderWeekCalendar(){
   var todayIdx = todayWeekdayIndex();
   var cells = WEEKDAYS.map(function(label, idx){
@@ -860,7 +935,7 @@ function renderHome(){
     '</div>';
   }
   var cards = state.routines.map(renderRoutineCard).join("");
-  return renderHero() + renderWeekCalendar() + banner +
+  return renderHero() + renderWeekCalendar() + renderCoachNotes() + banner +
     '<div class="section-title">Rutinas</div>' +
     cards +
     '<button class="btn secondary block" data-action="add-routine" style="margin-top:6px;">+ Nueva rutina</button>';
@@ -1343,12 +1418,31 @@ function renderCheckin(){
 
 function renderData(){
   var count = state.sessions.length;
+  var localBackup = loadLocalBackup();
+  var localImportBtn = localBackup ? '<button class="btn secondary block" data-action="import-local" style="margin-bottom:10px;">'+icon('upload')+' Importar datos guardados en este celular</button>' : "";
+  var inviteCard = "";
+  if(currentUser && currentUser.role==="coach" && currentUser.invite_code){
+    var inviteLink = location.origin + location.pathname + "?invite=" + currentUser.invite_code;
+    inviteCard = '<div class="card">' +
+      '<div class="section-title" style="margin-top:0;">Tu código de invitación</div>' +
+      '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:30px;font-weight:700;letter-spacing:.1em;color:var(--text);">'+currentUser.invite_code+'</div>' +
+      '<div class="meta" style="color:var(--muted);font-size:12px;margin-top:8px;word-break:break-all;">'+inviteLink+'</div>' +
+      '<button class="btn secondary block" data-action="copy-invite" data-invite="'+inviteLink+'" style="margin-top:10px;">Copiar link para tus clientes</button>' +
+    '</div>';
+  }
   return '<div class="card">' +
-      '<div class="section-title" style="margin-top:0;">Respaldo de datos</div>' +
-      '<div class="meta" style="color:var(--muted);font-size:13px;">Este dispositivo tiene '+count+' entrenamientos registrados. Exporta un respaldo periódicamente para conservar tu historial, o impórtalo en otro navegador.</div>' +
+      '<div class="section-title" style="margin-top:0;">Cuenta</div>' +
+      '<div class="meta" style="color:var(--muted);font-size:13px;">'+(currentUser?currentUser.display_name:"")+' · '+(currentUser?currentUser.role:"")+'</div>' +
     '</div>' +
+    inviteCard +
+    '<div class="card">' +
+      '<div class="section-title" style="margin-top:0;">Respaldo de datos</div>' +
+      '<div class="meta" style="color:var(--muted);font-size:13px;">Tienes '+count+' entrenamientos registrados, sincronizados en la nube. Exporta un respaldo periódicamente si quieres conservar una copia local.</div>' +
+    '</div>' +
+    localImportBtn +
     '<button class="btn block" data-action="export-data" style="margin-bottom:10px;">'+icon('download')+' Exportar respaldo</button>' +
-    '<button class="btn secondary block" data-action="import-data">'+icon('upload')+' Importar respaldo</button>';
+    '<button class="btn secondary block" data-action="import-data" style="margin-bottom:10px;">'+icon('upload')+' Importar respaldo</button>' +
+    '<button class="btn danger block" data-action="sign-out">Cerrar sesión</button>';
 }
 
 // ---------- main render ----------
@@ -1565,6 +1659,41 @@ app.addEventListener("click", function(e){
     });
     return;
   }
+  if(action==="ack-note"){
+    var noteId = t.dataset.note;
+    sb.from("coach_notes").update({read_at:new Date().toISOString()}).eq("id", noteId).then(function(){
+      coachNotesCache = coachNotesCache.filter(function(n){ return n.id!==noteId; });
+      render();
+    });
+    return;
+  }
+  if(action==="import-local"){
+    var localBackup = loadLocalBackup();
+    if(!localBackup) return;
+    showConfirm("Esto reemplazará los datos de tu cuenta con los que ya tenías guardados en este celular. ¿Continuar?").then(function(ok){
+      if(!ok) return;
+      state = normalizeState(localBackup);
+      saveState(); render();
+      showAlert("Datos importados y sincronizados con tu cuenta.");
+    });
+    return;
+  }
+  if(action==="copy-invite"){
+    var link = t.dataset.invite;
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(function(){ showAlert("Link copiado. Envíaselo a tu cliente."); });
+    } else {
+      showAlert(link);
+    }
+    return;
+  }
+  if(action==="sign-out"){
+    showConfirm("¿Cerrar sesión?").then(function(ok){
+      if(!ok) return;
+      sb.auth.signOut().then(function(){ location.reload(); });
+    });
+    return;
+  }
   if(action==="export-data"){
     var blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
     var url = URL.createObjectURL(blob);
@@ -1707,7 +1836,128 @@ restTimeEl = document.getElementById("restTimeDisplay");
 document.getElementById("restExtendBtn").addEventListener("click", function(){ restState.endsAt += 15000; restTick(); });
 document.getElementById("restSkipBtn").addEventListener("click", stopRest);
 
-render();
+// ---------- autenticación ----------
+
+var authScreenEl = document.getElementById("authScreen");
+var authMode = "login";
+
+function generateInviteCode(){
+  var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  var code = "";
+  for(var i=0;i<6;i++) code += chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+function showAuthError(msg){ document.getElementById("authError").textContent = msg || ""; }
+
+function setAuthMode(mode){
+  authMode = mode;
+  document.getElementById("authTabLogin").classList.toggle("active", mode==="login");
+  document.getElementById("authTabSignup").classList.toggle("active", mode==="signup");
+  document.getElementById("authSignupExtra").style.display = mode==="signup" ? "block" : "none";
+  document.getElementById("authSubmitBtn").textContent = mode==="signup" ? "Crear cuenta" : "Iniciar sesión";
+  showAuthError("");
+}
+
+function showAuthScreen(){
+  authScreenEl.style.display = "flex";
+}
+function showApp(){
+  authScreenEl.style.display = "none";
+}
+
+async function fetchCoachNotes(){
+  if(!currentUser) return;
+  var res = await sb.from("coach_notes").select("*").eq("client_id", currentUser.id).order("created_at",{ascending:false});
+  coachNotesCache = res.error ? [] : (res.data || []);
+}
+
+async function loadCurrentUserAndData(user){
+  var profRes = await sb.from("profiles").select("*").eq("id", user.id).maybeSingle();
+  if(profRes.error || !profRes.data){
+    showAuthError("No se pudo cargar tu perfil. Intenta iniciar sesión de nuevo.");
+    await sb.auth.signOut();
+    showAuthScreen();
+    return;
+  }
+  currentUser = profRes.data;
+  state = await fetchClientData(currentUser.id);
+  await fetchCoachNotes();
+  showApp();
+  render();
+}
+
+async function handleLogin(email, password){
+  var res = await sb.auth.signInWithPassword({ email:email, password:password });
+  if(res.error){ showAuthError("No pudimos iniciar sesión: revisa tu correo y contraseña."); return; }
+  await loadCurrentUserAndData(res.data.user);
+}
+
+async function handleSignup(email, password, inviteCode, isCoach){
+  var signUpRes = await sb.auth.signUp({ email:email, password:password });
+  if(signUpRes.error){ showAuthError(signUpRes.error.message); return; }
+  var user = signUpRes.data.user;
+  if(!user || !signUpRes.data.session){
+    showAuthError("Revisa tu correo para confirmar la cuenta y luego inicia sesión.");
+    return;
+  }
+  var role = "client", coachId = null, myInviteCode = null;
+  if(isCoach){
+    role = "coach";
+    myInviteCode = generateInviteCode();
+  } else if(inviteCode){
+    var coachRes = await sb.from("profiles").select("id").eq("invite_code", inviteCode.trim().toUpperCase()).eq("role","coach").maybeSingle();
+    if(coachRes.error || !coachRes.data){ showAuthError("Código de invitación inválido."); return; }
+    coachId = coachRes.data.id;
+  }
+  var insertRes = await sb.from("profiles").insert({
+    id:user.id, role:role, coach_id:coachId, invite_code:myInviteCode, display_name: email.split("@")[0]
+  });
+  if(insertRes.error){ showAuthError(insertRes.error.message); return; }
+  await loadCurrentUserAndData(user);
+}
+
+function onAuthSubmit(){
+  if(!sb){ showAuthError("No se pudo conectar. Revisa tu conexión a internet."); return; }
+  var email = document.getElementById("authEmail").value.trim();
+  var password = document.getElementById("authPassword").value;
+  if(!email || !password){ showAuthError("Completa correo y contraseña."); return; }
+  var btn = document.getElementById("authSubmitBtn");
+  btn.disabled = true;
+  showAuthError("");
+  var task = authMode==="login"
+    ? handleLogin(email, password)
+    : handleSignup(email, password, document.getElementById("authInvite").value.trim(), document.getElementById("authIsCoach").checked);
+  task.catch(function(e){ showAuthError("Ocurrió un error inesperado."); console.error(e); })
+    .then(function(){ btn.disabled = false; });
+}
+
+document.getElementById("authTabLogin").addEventListener("click", function(){ setAuthMode("login"); });
+document.getElementById("authTabSignup").addEventListener("click", function(){ setAuthMode("signup"); });
+document.getElementById("authSubmitBtn").addEventListener("click", onAuthSubmit);
+document.getElementById("authIsCoach").addEventListener("change", function(e){
+  document.getElementById("authInviteRow").style.display = e.target.checked ? "none" : "block";
+});
+
+var inviteFromUrl = new URLSearchParams(location.search).get("invite");
+if(inviteFromUrl){
+  setAuthMode("signup");
+  document.getElementById("authInvite").value = inviteFromUrl;
+}
+
+async function initApp(){
+  if(!sb){
+    showAuthScreen();
+    showAuthError("No se pudo conectar. Revisa tu conexión a internet y vuelve a intentar.");
+    return;
+  }
+  var sessionRes = await sb.auth.getSession();
+  var session = sessionRes.data.session;
+  if(!session){ showAuthScreen(); return; }
+  await loadCurrentUserAndData(session.user);
+}
+
+initApp();
 })();
 </script>
 </body>
