@@ -951,6 +951,7 @@ function renderSessionDetail(session, isSummary){
   '<div class="card"><div class="section-title" style="margin-top:0;">Por músculo</div>'+muscleRows+'</div>' +
   cards +
   (isSummary ? '<button class="btn block" data-action="goto" data-view="home">Volver a inicio</button>' :
+    '<button class="btn secondary block" data-action="share-session" data-session="'+session.id+'" style="margin-bottom:10px;">'+icon('share')+' Compartir</button>' +
     '<button class="btn danger block" data-action="delete-session" data-session="'+session.id+'">Eliminar registro</button>');
 }
 
@@ -1115,7 +1116,119 @@ function renderWrapped(){
   '</div>';
 }
 
-function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
+function buildWrappedCanvas(session, wrapped){
+  return new Promise(function(resolve){
+    try{
+      var W = 1080;
+      var canvas = document.createElement("canvas");
+      canvas.width = W; canvas.height = 1200;
+      var ctx = canvas.getContext("2d");
+      ctx.textAlign = "center";
+
+      // ---- pass 1: figure out how tall the content actually is ----
+      ctx.font = "500 36px Manrope, sans-serif";
+      var eqText = "Equivale a levantar "+wrapped.equivalence.text;
+      var eqLineCount = measureWrapLineCount(ctx, eqText, 860);
+      var prList = wrapped.prs.slice(0,4);
+
+      var topPad = 110, bottomPad = 130;
+      var cursor = topPad;
+      cursor += 46;  // brand line
+      cursor += 90;  // routine title
+      cursor += 60;  // date
+      cursor += 60;  // gap before first stat
+      cursor += 230; // duration stat block
+      cursor += 230; // tonnage stat block
+      cursor += eqLineCount*48 + 40; // equivalence text
+      if(wrapped.topMuscle){ cursor += 230; }
+      if(prList.length){ cursor += 60 + prList.length*50 + 20; }
+      var H = Math.max(cursor + bottomPad, 1200);
+
+      canvas.height = H;
+      ctx.textAlign = "center"; // context resets on resize
+
+      // ---- pass 2: actually draw, using the same layout ----
+      var bg = ctx.createLinearGradient(0,0,0,H);
+      bg.addColorStop(0,"#121212"); bg.addColorStop(1,"#0a0a0a");
+      ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+      var glow = ctx.createRadialGradient(W/2,topPad+200,50,W/2,topPad+200,760);
+      glow.addColorStop(0,"rgba(255,255,255,.18)"); glow.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+
+      var y = topPad;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 34px Manrope, sans-serif";
+      ctx.fillText("TRILLAT COACHING", W/2, y);
+
+      y += 90;
+      ctx.fillStyle = "#e0e0e0";
+      ctx.font = "600 60px Fraunces, Georgia, serif";
+      ctx.fillText(session.routineName, W/2, y);
+
+      y += 50;
+      ctx.font = "500 30px Manrope, sans-serif";
+      ctx.fillStyle = "#a0a0a0";
+      ctx.fillText(fmtDate(session.date), W/2, y);
+
+      y += 60;
+      function statBlock(label, value){
+        y += 108;
+        ctx.font = "800 108px Fraunces, Georgia, serif";
+        ctx.fillStyle = "#e0e0e0";
+        ctx.fillText(value, W/2, y);
+        y += 48;
+        ctx.font = "700 30px Manrope, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(label.toUpperCase(), W/2, y);
+        y += 74;
+      }
+      statBlock("Minutos entrenados", (wrapped.durationMin||0)+"");
+      statBlock("Kg totales levantados", wrapped.tonnage.toLocaleString());
+
+      ctx.font = "500 36px Manrope, sans-serif";
+      ctx.fillStyle = "#e0e0e0";
+      y += 44;
+      drawWrapLines(ctx, eqText, W/2, y, 860, 48);
+      y += eqLineCount*48 + 40;
+
+      if(wrapped.topMuscle){
+        statBlock("Grupo protagonista", wrapped.topMuscle.name);
+      }
+
+      if(prList.length){
+        y += 20;
+        ctx.font = "700 40px Manrope, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("★ "+wrapped.prs.length+" récord"+(wrapped.prs.length>1?"s":"")+" personal"+(wrapped.prs.length>1?"es":""), W/2, y);
+        ctx.font = "500 34px Manrope, sans-serif";
+        ctx.fillStyle = "#e0e0e0";
+        prList.forEach(function(pr){
+          y += 50;
+          ctx.fillText(pr.name+" · "+pr.weight+"kg×"+pr.reps, W/2, y);
+        });
+      }
+
+      ctx.font = "600 26px Manrope, sans-serif";
+      ctx.fillStyle = "#a0a0a0";
+      ctx.fillText("Mi Entrenamiento", W/2, H-60);
+
+      canvas.toBlob(function(blob){ resolve(blob); }, "image/png");
+    }catch(e){ resolve(null); }
+  });
+}
+
+function measureWrapLineCount(ctx, text, maxWidth){
+  var words = text.split(" ");
+  var line = "", count = 0;
+  words.forEach(function(w){
+    var test = line ? line+" "+w : w;
+    if(ctx.measureText(test).width > maxWidth && line){ count++; line = w; }
+    else line = test;
+  });
+  return count+1;
+}
+function drawWrapLines(ctx, text, x, y, maxWidth, lineHeight){
   var words = text.split(" ");
   var line = "", lines = [];
   words.forEach(function(w){
@@ -1125,83 +1238,23 @@ function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight){
   });
   lines.push(line);
   lines.forEach(function(l,i){ ctx.fillText(l, x, y+i*lineHeight); });
-  return lines.length;
-}
-
-function buildWrappedCanvas(session, wrapped){
-  return new Promise(function(resolve){
-    try{
-      var canvas = document.createElement("canvas");
-      canvas.width = 1080; canvas.height = 1920;
-      var ctx = canvas.getContext("2d");
-
-      var bg = ctx.createLinearGradient(0,0,0,canvas.height);
-      bg.addColorStop(0,"#121212"); bg.addColorStop(1,"#0a0a0a");
-      ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      var glow = ctx.createRadialGradient(540,320,50,540,320,760);
-      glow.addColorStop(0,"rgba(255,255,255,.18)"); glow.addColorStop(1,"rgba(255,255,255,0)");
-      ctx.fillStyle = glow; ctx.fillRect(0,0,canvas.width,canvas.height);
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 32px Manrope, sans-serif";
-      ctx.fillText("TRILLAT COACHING", canvas.width/2, 150);
-
-      ctx.fillStyle = "#e0e0e0";
-      ctx.font = "600 56px Fraunces, Georgia, serif";
-      ctx.fillText(session.routineName, canvas.width/2, 235);
-
-      ctx.font = "500 28px Manrope, sans-serif";
-      ctx.fillStyle = "#a0a0a0";
-      ctx.fillText(fmtDate(session.date), canvas.width/2, 282);
-
-      function statBlock(y, label, value){
-        ctx.font = "800 100px Fraunces, Georgia, serif";
-        ctx.fillStyle = "#e0e0e0";
-        ctx.fillText(value, canvas.width/2, y);
-        ctx.font = "700 28px Manrope, sans-serif";
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(label.toUpperCase(), canvas.width/2, y+48);
-      }
-      statBlock(470, "Minutos entrenados", (wrapped.durationMin||0)+"");
-      statBlock(700, "Kg totales levantados", wrapped.tonnage.toLocaleString());
-
-      ctx.font = "500 34px Manrope, sans-serif";
-      ctx.fillStyle = "#e0e0e0";
-      var eqLines = wrapCanvasText(ctx, "Equivale a levantar "+wrapped.equivalence.text, canvas.width/2, 800, 860, 46);
-
-      var cursorY = 800 + eqLines*46 + 90;
-      if(wrapped.topMuscle){
-        statBlock(cursorY, "Grupo protagonista", wrapped.topMuscle.name);
-        cursorY += 190;
-      }
-
-      if(wrapped.prs.length){
-        ctx.font = "700 38px Manrope, sans-serif";
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText("★ "+wrapped.prs.length+" récord"+(wrapped.prs.length>1?"s":"")+" personal"+(wrapped.prs.length>1?"es":""), canvas.width/2, cursorY);
-        ctx.font = "500 32px Manrope, sans-serif";
-        ctx.fillStyle = "#e0e0e0";
-        wrapped.prs.slice(0,4).forEach(function(pr, i){
-          ctx.fillText(pr.name+" · "+pr.weight+"kg×"+pr.reps, canvas.width/2, cursorY+60+i*46);
-        });
-      }
-
-      ctx.font = "600 24px Manrope, sans-serif";
-      ctx.fillStyle = "#a0a0a0";
-      ctx.fillText("Mi Entrenamiento", canvas.width/2, canvas.height-60);
-
-      canvas.toBlob(function(blob){ resolve(blob); }, "image/png");
-    }catch(e){ resolve(null); }
-  });
 }
 
 function shareWrapped(){
   var session = state.sessions.find(function(s){ return s.id===state.wrappedSessionId; });
   var wrapped = state.wrappedData;
   if(!session || !wrapped) return;
+  shareWrappedFor(session, wrapped);
+}
 
+function shareSession(sessionId){
+  var session = state.sessions.find(function(s){ return s.id===sessionId; });
+  if(!session) return;
+  var wrapped = computeWrappedStats(session);
+  shareWrappedFor(session, wrapped);
+}
+
+function shareWrappedFor(session, wrapped){
   var summaryText = "💪 "+session.routineName+" — "+fmtDate(session.date)+"\n" +
     "⏱ "+(wrapped.durationMin||0)+" min · 🏋️ "+wrapped.tonnage.toLocaleString()+" kg levantados\n" +
     "Equivale a levantar "+wrapped.equivalence.text+"\n" +
@@ -1270,7 +1323,8 @@ function renderCheckin(){
     historyHtml = state.checkins.map(function(c){
       var stats = CHECKIN_METRICS.map(function(m){
         var v = c[m.key];
-        return '<div class="stat"><b>'+(v!==undefined && v!==""? v : "–")+'</b><span>'+(m.unit||m.label)+'</span></div>';
+        var display = (v!==undefined && v!==null && v!=="") ? (v+(m.unit||"")) : "–";
+        return '<div class="stat"><b>'+display+'</b><span>'+m.label+'</span></div>';
       }).join("");
       return '<div class="card">' +
         '<div class="row-between"><b>'+fmtDate(c.date)+'</b><button class="icon-btn" data-action="delete-checkin" data-checkin="'+c.id+'" style="color:var(--red)">×</button></div>' +
@@ -1401,6 +1455,7 @@ app.addEventListener("click", function(e){
   if(action==="start-workout"){ startWorkout(t.dataset.routine); return; }
   if(action==="finish-workout"){ finishWorkout(); return; }
   if(action==="share-wrapped"){ shareWrapped(); return; }
+  if(action==="share-session"){ shareSession(t.dataset.session); return; }
   if(action==="cancel-workout"){ cancelWorkout(); return; }
   if(action==="add-set"){
     var idx = +t.dataset.entry;
