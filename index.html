@@ -1432,7 +1432,7 @@ function renderData(){
   var localImportBtn = localBackup ? '<button class="btn secondary block" data-action="import-local" style="margin-bottom:10px;">'+icon('upload')+' Importar datos guardados en este celular</button>' : "";
   var inviteCard = "";
   if(currentUser && currentUser.role==="coach" && currentUser.invite_code){
-    var inviteLink = location.origin + location.pathname + "?invite=" + currentUser.invite_code;
+    var inviteLink = location.href.split("#")[0] + "#invite=" + currentUser.invite_code;
     inviteCard = '<div class="card">' +
       '<div class="section-title" style="margin-top:0;">Tu código de invitación</div>' +
       '<div style="font-family:\'Fraunces\',Georgia,serif;font-size:30px;font-weight:700;letter-spacing:.1em;color:var(--text);">'+currentUser.invite_code+'</div>' +
@@ -1949,7 +1949,10 @@ document.getElementById("authIsCoach").addEventListener("change", function(e){
   document.getElementById("authInviteRow").style.display = e.target.checked ? "none" : "block";
 });
 
-var inviteFromUrl = new URLSearchParams(location.search).get("invite");
+var inviteFromUrl = null;
+if(location.hash && location.hash.indexOf("invite=")>=0){
+  inviteFromUrl = decodeURIComponent(location.hash.split("invite=")[1].split("&")[0]);
+}
 if(inviteFromUrl){
   setAuthMode("signup");
   document.getElementById("authInvite").value = inviteFromUrl;
